@@ -1,1 +1,0 @@
-// Pruebas end-to-end con Supertest contra los endpoints reales. Usa SQLite (archivo temporal) para verificar flujo completo HTTP → use case → repos.

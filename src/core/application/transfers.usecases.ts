@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { Company } from '../domain/entities/company';
 import { Transfer } from '../domain/entities/transfer';
 import {
@@ -39,7 +39,7 @@ export class TransfersApplication {
     try {
       const exists = await this.companies.existsById(input.companyId);
       if (!exists) {
-        throw new BadRequestException({
+        throw new NotFoundException({
           message: 'La empresa (companyId) no existe',
         });
       }

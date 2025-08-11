@@ -1,1 +1,0 @@
-// Pruebas unitarias de los use cases con dobles en memoria de los repositorios (implementan puertos). Valida reglas sin levantar Nest ni DB.

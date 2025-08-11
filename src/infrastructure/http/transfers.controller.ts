@@ -26,7 +26,7 @@ export class TransfersController {
   constructor(private readonly app: TransfersApplication) {}
 
   /** Obtiene empresas con transferencias durante los últimos 30 días. */
-  @Get()
+  @Get('/companies')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ description: 'Empresas con transferencias en el último mes' })
   @ApiOkResponse({

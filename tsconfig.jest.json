@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": false,
+    "outDir": "./dist-test",
+    "sourceMap": true
+  }
+}
