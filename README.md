@@ -9,6 +9,7 @@
 - Persistencia local con SQLite embebido vía Prisma.
 - Swagger habilitado para probar endpoints.
 - Pruebas unitarias y E2E.
+- Node 22, NestJS 11
 
 ## Entrega
 Requerimientos funcionales:
