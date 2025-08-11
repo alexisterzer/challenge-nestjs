@@ -2,49 +2,91 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Descripción
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+<b>Challenge</b>: Microservicio NestJS (standalone) para gestionar empresas y sus transferencias, construido con Arquitectura Hexagonal, priorizando separación de responsabilidades y escalabilidad.
 
-## Description
+- Persistencia local con SQLite embebido vía Prisma.
+- Swagger habilitado para probar endpoints.
+- Pruebas unitarias y E2E.
+- Node 22, NestJS 11
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Entrega
+Requerimientos funcionales:
+- Empresas con transferencias en el último mes → ```GET /transfers/companies```
+    - Retorna Company[] con al menos una transferencia (últimos 30 días, ventana por defecto).
+- Empresas adheridas en el último mes → ```GET /companies/registered```
+    - Retorna Company[] creadas en últimos 30 días.
+- Registrar una nueva empresa (Pyme o Corporativa) → ```POST /companies/register```
 
-## Project setup
+Ejemplo (body):
+```
+{
+  "name": "Corpo SRL",
+  "type": "PYME", //o CORP
+  "createdAt": "2025-08-10T19:58:14.342Z"
+}
+```
+
+Extras útiles:
+- Crear transferencia para una empresa → ```POST /transfers```
+
+Ejemplo (body):
+```
+{
+  "companyId": "c10a9388-27f7-4fa6-9758-30efd1b1f22c",
+  "amount": 12345.67,
+  "occurredAt": "2025-08-10T19:58:14.342Z"
+}
+```
+
+- Obtener transferencias de los últ. 30 días (opcional filtro por ```companyId```) → ```GET /transfers/records?companyId=...```
+
+## Arquitectura Hexagonal
+
+#### Core (agnóstico a NestJS)
+- Domain: entidades (Company, Transfer)
+- Ports (outbound): clases abstractas (<b>CompanyRepository</b> y <b>TransferRepository</b>)
+- Application: orquestación de casos de uso
+    - <b>CompaniesApplication</b>: Registra una empresa y Obtiene empresas registradas dentro de un rango.
+    - <b>TransfersApplication</b>: Obtiene empresa con al menos una transf. realizada dentro de un rago, crear y listar.
+
+#### Infrastructure
+- Inbound (HTTP): <b>CompaniesController</b>, <b>TransfersController</b> → validan DTOs, calculan la ventana por defecto (30 días) y llaman a Application.
+- Outbound (DB): <b>PrismaCompanyRepository</b>, <b>PrismaTransferRepository</b> → implementan los ports (del negocio) con Prisma + SQLite.
+
+#### CompaniesModule: punto de composición (wiring)
+- Vincula ports (negocio) → adapters (infra),
+- Crea <b>CompaniesApplication</b> y <b>TransfersApplication</b> con factory providers (core libre de decoradores Nest)
+- Expone controllers
+
+
+#### Dirección de dependencias
+
+```HTTP → Controller (inbound) → Application (core) → Ports (core) → Prisma Repos (outbound) → SQLite```
+
+Infra depende del core; el core NO depende de infra.
+
+# Configuración del proyecto
 
 ```bash
 $ npm install
+$ npm run setup
 ```
+Este paso 2 (npm run setup) configura Prisma + SQLite (crea DB, configura schema y migra datos ya creados)
 
-## Compile and run the project
+### Compilar y ejecutar el proyecto
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
 $ npm run start:dev
-
-# production mode
-$ npm run start:prod
 ```
 
-## Run tests
+```
+API y Swagger por defecto
+http://localhost:3000/
+```
+
+### Ejecutar test
 
 ```bash
 # unit tests
@@ -52,47 +94,8 @@ $ npm run test
 
 # e2e tests
 $ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
 ```
 
-## Deployment
+## Contacto
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Desarrollador - Sterzer Alexis
