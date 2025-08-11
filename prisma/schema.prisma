@@ -1,0 +1,36 @@
+// origen de datos: SQLite embebido en local.
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// genera tipado de Prisma.
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum CompanyType {
+  PYME
+  CORP
+}
+
+model Company {
+  id         String      @id @default(uuid())
+  name       String
+  type       CompanyType
+  createdAt  DateTime    @default(now())
+  transfers  Transfer[]
+
+  @@index([createdAt])                    // indice por fecha de creación.
+}
+
+model Transfer {
+  id         String   @id @default(uuid())
+  companyId  String                          // FK Company.id.
+  amount     Decimal
+  occurredAt DateTime
+  company    Company  @relation(fields: [companyId], references: [id]) // relación.
+
+  @@index([occurredAt])
+  @@index([companyId, occurredAt])
+}
