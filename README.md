@@ -81,6 +81,11 @@ Este paso 2 (npm run setup) configura Prisma + SQLite (crea DB, configura schema
 $ npm run start:dev
 ```
 
+```
+API y Swagger por defecto
+http://localhost:3000/
+```
+
 ### Ejecutar test
 
 ```bash
