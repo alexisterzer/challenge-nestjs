@@ -5,20 +5,56 @@ import {
   CompanyRepository,
   TransferRepository,
 } from 'src/core/domain/ports/outbound/repositories.ports';
-import {
-  PrismaCompanyRepository,
-} from './persistence/prisma/company.repository';
+import { PrismaCompanyRepository } from './persistence/prisma/company.repository';
 import { CompaniesController } from './http/companies.controller';
 import { TransfersApplication } from 'src/core/application/transfers.usecases';
 import { TransfersController } from './http/transfers.controller';
 import { PrismaTransferRepository } from './persistence/prisma/transfer.repository';
+import { CompanyLambdaWriter } from './persistence/aws/company.lambda';
+import { ConfigModule, ConfigType } from '@nestjs/config';
+import envCompaniesLambda from './config/env.companies.lambda';
+import { HybridCompanyRepository } from './persistence/aws/company.repository';
 
 @Module({
   controllers: [CompaniesController, TransfersController],
+  imports: [ConfigModule.forFeature(envCompaniesLambda)],
   providers: [
+    // Prisma base
     PrismaService,
-    { provide: CompanyRepository, useClass: PrismaCompanyRepository },
+    PrismaCompanyRepository,
     { provide: TransferRepository, useClass: PrismaTransferRepository },
+
+    // HTTP a Lambda
+    {
+      provide: CompanyLambdaWriter,
+      inject: [envCompaniesLambda.KEY],
+      useFactory: (cfg: ConfigType<typeof envCompaniesLambda>) =>
+        new CompanyLambdaWriter(cfg.lambdaUrl, cfg.lambdaTimeoutMs),
+    },
+
+    /**
+     * Switch de inyeccion de dependencias (adapter)
+     * Si useAwsCompanyCreate === true y hay lambdaUrl → instancia HybridCompanyRepository
+     * caso contrario → devuelve PrismaCompanyRepository
+     */
+    {
+      provide: CompanyRepository,
+      inject: [
+        CompanyLambdaWriter,
+        PrismaCompanyRepository,
+        envCompaniesLambda.KEY,
+      ],
+      useFactory: (
+        writer: CompanyLambdaWriter,
+        prismaDefault: PrismaCompanyRepository,
+        cfg: ConfigType<typeof envCompaniesLambda>,
+      ) =>
+        cfg.useAwsCompanyCreate && cfg.lambdaUrl
+          ? new HybridCompanyRepository(writer, prismaDefault)
+          : prismaDefault,
+    },
+
+    // Applications
     {
       provide: CompaniesApplication,
       useFactory: (companies: CompanyRepository) =>
@@ -27,8 +63,10 @@ import { PrismaTransferRepository } from './persistence/prisma/transfer.reposito
     },
     {
       provide: TransfersApplication,
-      useFactory: (transfers: TransferRepository, companies: CompanyRepository) =>
-        new TransfersApplication(transfers, companies),
+      useFactory: (
+        transfers: TransferRepository,
+        companies: CompanyRepository,
+      ) => new TransfersApplication(transfers, companies),
       inject: [TransferRepository, CompanyRepository],
     },
   ],
